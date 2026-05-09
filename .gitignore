@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+.env
+ENV/
+env/
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Database files
+*.sqlite3
+
+# Logs
+*.log
+
+# Mac
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Chroma DB
+chroma_db/
