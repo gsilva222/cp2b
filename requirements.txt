@@ -10,5 +10,6 @@ sentence-transformers>=3.0.1
 sqlalchemy>=2.0.34
 psycopg[binary]>=3.2.0
 pypdf>=4.3.1
+cryptography>=3.1
 requests>=2.32.3
 python-dotenv>=1.0.1

@@ -122,9 +122,16 @@ Editar `.env`: `OLLAMA_MODEL=llama3.2`
 
 ## Dados extra (opcional)
 
-- PDFs → `data/rulebooks/`
-- Reviews `.txt` → `data/reviews/`
-- Depois: `.\venv\Scripts\python.exe ingest\build_vectorstore.py`
+- PDFs de rulebooks → `data/rulebooks/` (ex.: `catan-rules.pdf`)
+- Reviews em texto → `data/reviews/`
+
+**Depois de adicionar ou alterar PDFs/reviews, é obrigatório reindexar:**
+
+```powershell
+.\scripts\rebuild-vectorstore.ps1
+```
+
+Depois reinicia o backend (`run-backend.ps1`).
 
 ## Troubleshooting
 
@@ -137,6 +144,7 @@ Editar `.env`: `OLLAMA_MODEL=llama3.2`
 | `pip install failed` | `.\venv\Scripts\python.exe -m pip install -r requirements.txt` |
 | `model not found` | `docker exec (docker compose ps -q ollama) ollama pull llama3.1:8b` |
 | Erro JSON no frontend | Iniciar `run-backend.ps1` antes do frontend |
+| Respostas erradas sobre regras | Adicionaste um PDF? Corre `.\scripts\rebuild-vectorstore.ps1` e reinicia o backend |
 | PostgreSQL not ready | `docker compose ps` — aguardar container "Up" e repetir setup |
 
 ## Tecnologias
