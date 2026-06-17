@@ -42,3 +42,6 @@ docker-compose.override.yml
 
 # Chroma DB
 chroma_db/
+
+# Optional Kaggle source (games.json is included)
+data/games.csv

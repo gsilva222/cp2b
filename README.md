@@ -1,153 +1,149 @@
-# 🎲 BoardGame GPT
+# BoardGame GPT
 
-Um chatbot inteligente sobre jogos de tabuleiro, usando RAG (Retrieval-Augmented Generation) e SQL Agent para responder perguntas sobre regras, reviews, ratings e mais. Baseado em dados do BoardGameGeek (BGG).
+Chatbot sobre jogos de tabuleiro com RAG e SQL Agent. Responde perguntas sobre regras, reviews, ratings e estatísticas com dados do BoardGameGeek (BGG).
 
-## 📋 Descrição
+---
 
-Este projeto combina:
-- **RAG**: Para perguntas sobre regras, estratégias, temas e reviews (usando embeddings e ChromaDB).
-- **SQL Agent**: Para perguntas numéricas/estatísticas sobre jogos (ratings, player counts, etc., usando PostgreSQL).
-- **Frontend**: Interface Streamlit simples para interagir.
-- **Backend**: FastAPI com LangChain e Ollama para IA.
+## PC novo (Windows) — guia rápido
 
-Dados incluem jogos, reviews e rulebooks indexados localmente.
+### Passo 1 — Instalar software (só uma vez no PC)
 
-## 🛠️ Pré-requisitos
+1. **Python 3.12+** → https://www.python.org/downloads/  
+   No instalador, marcar **"Add Python to PATH"**.
 
-- **Ubuntu/Linux** (ou similar com Docker).
-- **Docker** e **Docker Compose** instalados.
-- **Python 3.12+**.
-- Pelo menos 8GB RAM (para modelos Ollama).
-- Conexão à internet para baixar modelos.
+2. **Docker Desktop** → https://www.docker.com/products/docker-desktop/  
+   Instalar, abrir, e aguardar o estado **"Running"** (ícone verde).
 
-## 🚀 Instalação e Configuração
+Requisitos: Windows 10/11, 8 GB RAM, internet na primeira execução.
 
-### 1. Instalar Docker (se não tiver)
-```bash
-# Adicionar chave GPG
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+### Passo 2 — Setup do projeto (só uma vez)
 
-# Adicionar repositório
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+Copiar ou clonar o projeto para o PC. Abrir **PowerShell** na pasta do projeto:
 
-# Instalar
-sudo apt update
-sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
-
-# Adicionar usuário ao grupo Docker
-sudo usermod -aG docker $USER
-# Logout e login novamente, ou execute: newgrp docker
+```powershell
+cd C:\caminho\para\cp2b
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\setup.ps1
 ```
 
-### 2. Clonar ou navegar para o projeto
-```bash
-cd ~/Documents/AOP/CP2B  # Ajusta o caminho se necessário
+Este comando instala tudo automaticamente:
+- Pacotes Python (`venv` + `requirements.txt`)
+- Ficheiro `.env`
+- Docker (PostgreSQL + Ollama)
+- Dados em PostgreSQL
+- Índice de embeddings (ChromaDB)
+- Modelo `llama3.1:8b`
+
+A primeira vez pode demorar **15–30 minutos** (PyTorch, embeddings, modelo LLM).
+
+### Passo 3 — Usar a aplicação (sempre que quiseres abrir)
+
+Abrir **dois terminais** PowerShell na pasta do projeto:
+
+```powershell
+# Terminal 1
+cd C:\caminho\para\cp2b
+.\scripts\run-backend.ps1
 ```
 
-### 3. Criar ambiente virtual Python
-```bash
-python3 -m venv venv
-source venv/bin/activate  # Ativar sempre antes de usar Python
+```powershell
+# Terminal 2
+cd C:\caminho\para\cp2b
+.\scripts\run-frontend.ps1
 ```
 
-### 4. Instalar dependências
-```bash
-python -m pip install -r requirements.txt
-```
+Abrir no browser: **http://localhost:8501**
 
-### 5. Iniciar serviços Docker (PostgreSQL, Ollama, ChromaDB)
-```bash
-docker-compose up -d
-```
-Aguarda 30-60 segundos para os containers iniciarem.
+> **Importante:** Docker Desktop tem de estar **Running** sempre que usas a app.
 
-### 6. Popular a base de dados
-```bash
-# PostgreSQL com dados dos jogos
-python ingest/load_postgres.py
+---
 
-# Vectorstore (ChromaDB) com embeddings de reviews/rulebooks
-python ingest/build_vectorstore.py
-```
+## O que vem incluído no projeto
 
-### 7. Baixar modelo Ollama
-```bash
-# Verificar modelos disponíveis
-sudo docker exec -it cp2b-ollama-1 ollama list
+Não precisas de descarregar dados manualmente. O repositório já inclui:
 
-# Baixar modelo (ex.: llama3.1:8b ou llama3.2)
-sudo docker exec -it cp2b-ollama-1 ollama pull llama3.1:8b  # Ajusta se necessário
-```
-Se o modelo 'llama3.1:8b' não existir, usa `llama3.2` ou `llama3:instruct` e edita `backend/router.py` e `backend/rag.py` para mudar `model="llama3.1:8b"` para o nome correto.
+- `data/games.json` — 200 jogos com descrições
+- `docker-compose.yml` — PostgreSQL + Ollama
+- `.env.example` — configuração default
 
-## 🎮 Como Usar
+O setup gera automaticamente:
+- `venv/` — ambiente Python
+- `.env` — cópia de `.env.example`
+- `chroma_db/` — vectorstore local
 
-### Iniciar o Backend
-```bash
-python -m uvicorn backend.main:app --host 0.0.0.0 --port 8080
-```
+## Exemplos de perguntas
 
-### Iniciar o Frontend (em outro terminal)
-```bash
-streamlit run frontend/app.py
-```
-
-Abre `http://localhost:8501` no browser. Faz perguntas como:
 - "Tell me about Stonehenge"
 - "What are the best games under 30 minutes?"
 - "How to play Piratenbillard?"
 
-### Testar API diretamente
-```bash
-curl -X POST "http://localhost:8080/ask" -H "Content-Type: application/json" -d '{"question": "What games do you have?"}'
+## Testar API
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/health"
+Invoke-RestMethod -Uri "http://localhost:8080/ask" -Method POST `
+  -ContentType "application/json" `
+  -Body '{"question": "What games do you have?"}'
 ```
 
-## 📁 Estrutura do Projeto
+## Estrutura
 
 ```
-CP2B/
-├── backend/              # API FastAPI
-│   ├── main.py          # Endpoint principal
-│   ├── router.py        # Classificação de perguntas (SQL vs RAG)
-│   ├── rag.py           # Cadeia RAG com Ollama
-│   └── sql_agent.py     # Agent SQL com PostgreSQL
-├── frontend/            # Interface Streamlit
-│   └── app.py
-├── ingest/              # Scripts de ingestão de dados
-│   ├── load_postgres.py # Carrega dados para PostgreSQL
-│   ├── build_vectorstore.py # Cria embeddings e indexa em ChromaDB
-│   └── fetch_bgg.py     # (Opcional) Busca dados do BGG
-├── data/                # Dados brutos
-│   ├── games.csv/json   # Lista de jogos
-│   ├── reviews/         # Reviews de jogos
-│   └── rulebooks/       # Rulebooks
-├── chroma_db/           # Vectorstore persistido
-├── docker-compose.yml   # Serviços Docker
-├── requirements.txt     # Dependências Python
-└── README.md            # Este ficheiro
+cp2b/
+├── backend/              # FastAPI + LangChain
+├── frontend/             # Streamlit
+├── ingest/               # Scripts de ingestão
+├── scripts/
+│   ├── setup.ps1         # Setup completo (correr 1x)
+│   ├── run-backend.ps1   # API na porta 8080
+│   └── run-frontend.ps1  # UI na porta 8501
+├── data/games.json       # Dados incluídos
+├── config.py
+├── docker-compose.yml
+├── .env.example
+└── requirements.txt
 ```
 
-## 🧠 Tecnologias
+## Configuração (.env)
 
-- **Backend**: FastAPI, LangChain, Ollama
-- **Frontend**: Streamlit
-- **BD**: PostgreSQL (dados estruturados), ChromaDB (vetores)
-- **IA**: Llama 3.x via Ollama (local, sem APIs externas)
-- **Embeddings**: Sentence Transformers (all-MiniLM-L6-v2)
-- **Infra**: Docker Compose
+Criado automaticamente pelo setup. Só editar se precisares:
 
-## 🔧 Troubleshooting
+| Variável | Default | Descrição |
+|----------|---------|-----------|
+| `DATABASE_URL` | `postgresql+psycopg://bg:bg@127.0.0.1:5434/boardgames` | PostgreSQL |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | API Ollama |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Modelo LLM |
+| `API_URL` | `http://localhost:8080/ask` | URL do backend |
 
-- **Erro "model not found"**: Baixa o modelo correto no Ollama (passo 7).
-- **Erro SQLAlchemy**: Certifica-te de que o Docker está a correr e a BD populada.
-- **Erro JSON no frontend**: Backend não está a correr – verifica logs.
-- **Sem dados**: Re-executa `ingest/load_postgres.py` e `ingest/build_vectorstore.py`.
-- **Permissões Docker**: Usa `sudo` ou adiciona usuário ao grupo Docker.
+Trocar modelo:
+```powershell
+docker exec (docker compose ps -q ollama) ollama pull llama3.2
+```
+Editar `.env`: `OLLAMA_MODEL=llama3.2`
 
-## 📄 Licença
+## Dados extra (opcional)
 
-Este projeto é para fins educacionais. Dados do BGG – respeita copyrights.
+- PDFs → `data/rulebooks/`
+- Reviews `.txt` → `data/reviews/`
+- Depois: `.\venv\Scripts\python.exe ingest\build_vectorstore.py`
 
----
+## Troubleshooting
 
-**Nota**: Primeiro run pode demorar devido a downloads de modelos/embeddings. Se tiveres problemas, verifica os logs do backend/frontend.
+| Problema | Solução |
+|----------|---------|
+| `ExecutionPolicy` | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` |
+| `Python not found` | Reinstalar Python com "Add Python to PATH" |
+| `Docker Desktop is not running` | Abrir Docker Desktop e aguardar "Running" |
+| `Virtual environment not found` | Correr `.\scripts\setup.ps1` |
+| `pip install failed` | `.\venv\Scripts\python.exe -m pip install -r requirements.txt` |
+| `model not found` | `docker exec (docker compose ps -q ollama) ollama pull llama3.1:8b` |
+| Erro JSON no frontend | Iniciar `run-backend.ps1` antes do frontend |
+| PostgreSQL not ready | `docker compose ps` — aguardar container "Up" e repetir setup |
+
+## Tecnologias
+
+FastAPI · Streamlit · LangChain · Ollama · PostgreSQL · ChromaDB · Sentence Transformers
+
+## Licença
+
+Projeto educacional. Dados do BGG — respeita copyrights.

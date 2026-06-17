@@ -1,6 +1,12 @@
-# ingest/load_postgres.py
 import json
+import sys
+from pathlib import Path
+
 from sqlalchemy import create_engine, text
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from config import DATABASE_URL, GAMES_JSON
 
 DDL = """
 CREATE TABLE IF NOT EXISTS games (
@@ -14,19 +20,25 @@ CREATE TABLE IF NOT EXISTS games (
 );
 """
 
+
 def load():
-    engine = create_engine(
-    "postgresql+psycopg://bg:bg@127.0.0.1:5434/boardgames"
-    )
+    if not GAMES_JSON.exists():
+        raise FileNotFoundError(f"Missing {GAMES_JSON}")
+
+    engine = create_engine(DATABASE_URL)
     with engine.begin() as c:
         c.execute(text(DDL))
-        for g in json.load(open("data/games.json")):
-            c.execute(text("""
+        for g in json.loads(GAMES_JSON.read_text(encoding="utf-8")):
+            c.execute(
+                text("""
               INSERT INTO games VALUES
               (:bgg_id,:name,:year,:min_players,:max_players,:playtime,:min_age,
                :weight,:rating,:rank,:categories,:mechanics,:designers,:description)
               ON CONFLICT (bgg_id) DO UPDATE SET rating=EXCLUDED.rating
-            """), g)
+            """),
+                g,
+            )
+
 
 if __name__ == "__main__":
     load()

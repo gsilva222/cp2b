@@ -1,8 +1,9 @@
-# backend/router.py
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 
-LLM = ChatOllama(model="llama3.1:8b", temperature=0)
+from config import OLLAMA_BASE_URL, OLLAMA_MODEL
+
+LLM = ChatOllama(model=OLLAMA_MODEL, temperature=0, base_url=OLLAMA_BASE_URL)
 
 ROUTE = ChatPromptTemplate.from_template("""
 Classify the user's board-game question into ONE label:
@@ -15,6 +16,7 @@ Reply with only the label.
 
 Question: {q}
 Label:""")
+
 
 def route(question: str) -> str:
     label = (ROUTE | LLM).invoke({"q": question}).content.strip().upper()
