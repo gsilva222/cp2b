@@ -3,8 +3,7 @@
 Chatbot sobre jogos de tabuleiro com RAG e SQL Agent. Responde perguntas sobre regras, reviews, ratings e estatísticas com dados do BoardGameGeek (BGG).
 
 ---
-
-## PC novo (Windows) — guia rápido
+### Guia
 
 ### Passo 1 — Instalar software (só uma vez no PC)
 
