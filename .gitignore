@@ -37,10 +37,7 @@ dist/
 # Docker
 docker-compose.override.yml
 
-# Jupyter
-.ipynb_checkpoints/
-
-# Chroma DB
+# Generated at runtime (Docker volume)
 chroma_db/
 
 # Optional Kaggle source (games.json is included)

@@ -1,18 +1,89 @@
-services:
-  ollama:
-    image: ollama/ollama:latest
-    ports: ["11434:11434"]
-    volumes: ["ollama:/root/.ollama"]
+name: boardgame-gpt
 
+services:
   postgres:
     image: postgres:16
     environment:
       POSTGRES_USER: bg
       POSTGRES_PASSWORD: bg
       POSTGRES_DB: boardgames
-    ports: ["5434:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bg -d boardgames"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+
+  setup:
+    build: .
+    command: ["python", "ingest/docker_init.py"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - chroma_data:/app/chroma_db
+      - ./data:/app/data:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg://bg:bg@postgres:5432/boardgames
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      CHROMA_DIR: /app/chroma_db
+    restart: "no"
+
+  backend:
+    build: .
+    command: ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    volumes:
+      - chroma_data:/app/chroma_db
+      - ./data:/app/data:ro
+    environment:
+      DATABASE_URL: postgresql+psycopg://bg:bg@postgres:5432/boardgames
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.1:8b
+      CHROMA_DIR: /app/chroma_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    build: .
+    command:
+      [
+        "python",
+        "-m",
+        "streamlit",
+        "run",
+        "frontend/app.py",
+        "--server.port",
+        "8501",
+        "--server.address",
+        "0.0.0.0",
+      ]
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://backend:8080/ask
 
 volumes:
-  ollama:
   pgdata:
+  ollama:
+  chroma_data:
