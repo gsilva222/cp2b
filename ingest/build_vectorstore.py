@@ -17,34 +17,34 @@ from config import CHROMA_DIR, GAMES_JSON, REVIEWS_DIR, RULEBOOKS_DIR
 
 def load_documents():
     docs = []
-    RULEBOOKS_DIR.mkdir(parents=True, exist_ok=True)
-    REVIEWS_DIR.mkdir(parents=True, exist_ok=True)
 
-    for pdf in RULEBOOKS_DIR.glob("*.pdf"):
-        game = game_name_from_pdf(pdf)
-        print(f"Loading rulebook: {pdf.name} ({game})")
-        try:
-            pages = PyPDFLoader(str(pdf)).load()
-        except Exception as exc:
-            print(f"WARNING: could not read {pdf.name}: {exc}")
-            continue
-        for d in pages:
-            page = d.metadata.get("page", 0)
-            if isinstance(page, int):
-                page_label = page + 1
-            else:
-                page_label = page
-            d.page_content = f"[{game} - pagina {page_label}]\n{d.page_content}"
-            d.metadata["source"] = pdf.name
-            d.metadata["doc_type"] = "rulebook"
-            d.metadata["game"] = game
-            docs.append(d)
+    if RULEBOOKS_DIR.exists():
+        for pdf in RULEBOOKS_DIR.glob("*.pdf"):
+            game = game_name_from_pdf(pdf)
+            print(f"Loading rulebook: {pdf.name} ({game})")
+            try:
+                pages = PyPDFLoader(str(pdf)).load()
+            except Exception as exc:
+                print(f"WARNING: could not read {pdf.name}: {exc}")
+                continue
+            for d in pages:
+                page = d.metadata.get("page", 0)
+                if isinstance(page, int):
+                    page_label = page + 1
+                else:
+                    page_label = page
+                d.page_content = f"[{game} - pagina {page_label}]\n{d.page_content}"
+                d.metadata["source"] = pdf.name
+                d.metadata["doc_type"] = "rulebook"
+                d.metadata["game"] = game
+                docs.append(d)
 
-    for txt in REVIEWS_DIR.glob("*.txt"):
-        for d in TextLoader(str(txt), encoding="utf-8").load():
-            d.metadata["source"] = txt.name
-            d.metadata["doc_type"] = "review"
-            docs.append(d)
+    if REVIEWS_DIR.exists():
+        for txt in REVIEWS_DIR.glob("*.txt"):
+            for d in TextLoader(str(txt), encoding="utf-8").load():
+                d.metadata["source"] = txt.name
+                d.metadata["doc_type"] = "review"
+                docs.append(d)
 
     if GAMES_JSON.exists():
         for g in json.loads(GAMES_JSON.read_text(encoding="utf-8")):
