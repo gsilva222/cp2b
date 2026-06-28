@@ -23,7 +23,12 @@ def load_documents():
     for pdf in RULEBOOKS_DIR.glob("*.pdf"):
         game = game_name_from_pdf(pdf)
         print(f"Loading rulebook: {pdf.name} ({game})")
-        for d in PyPDFLoader(str(pdf)).load():
+        try:
+            pages = PyPDFLoader(str(pdf)).load()
+        except Exception as exc:
+            print(f"WARNING: could not read {pdf.name}: {exc}")
+            continue
+        for d in pages:
             page = d.metadata.get("page", 0)
             if isinstance(page, int):
                 page_label = page + 1
@@ -57,10 +62,22 @@ def load_documents():
     return docs
 
 
+def clear_chroma_dir() -> None:
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    for item in CHROMA_DIR.iterdir():
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+
 def build():
     docs = load_documents()
     rulebooks = sum(1 for d in docs if d.metadata.get("doc_type") == "rulebook")
     print(f"Loaded {len(docs)} documents ({rulebooks} rulebook pages)")
+
+    if not docs:
+        raise RuntimeError("No documents found to index.")
 
     rulebook_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1200, chunk_overlap=200
@@ -78,9 +95,7 @@ def build():
         )
         chunks.extend(splitter.split_documents([doc]))
 
-    if CHROMA_DIR.exists():
-        shutil.rmtree(CHROMA_DIR)
-    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    clear_chroma_dir()
 
     embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
     Chroma.from_documents(
@@ -90,6 +105,8 @@ def build():
         persist_directory=str(CHROMA_DIR),
     )
     print(f"Indexed {len(chunks)} chunks from {len(docs)} documents.")
+    rulebook_chunks = sum(1 for c in chunks if c.metadata.get("doc_type") == "rulebook")
+    print(f"Rulebook chunks: {rulebook_chunks}")
 
 
 if __name__ == "__main__":

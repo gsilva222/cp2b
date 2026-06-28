@@ -82,15 +82,53 @@ docker compose down
 
 ## Adicionar rulebooks (ex.: Catan)
 
-1. Colocar o PDF em `data/rulebooks/` (ex.: `catan-rules.pdf`)
-2. No Docker Desktop, ir a **Volumes** e apagar **boardgame-gpt_chroma_data**
-3. Na pasta do projeto, executar:
+### 1. Colocar o PDF na pasta
 
-```powershell
-docker compose up -d
+```
+data/rulebooks/catan-rules.pdf
 ```
 
-O contentor **setup** volta a indexar os ficheiros.
+Convém usar nomes como `nome-do-jogo-rules.pdf`.
+
+### 2. Reindexar (obrigatório)
+
+O contentor **setup** só indexa PDFs novos quando volta a correr. Tens duas opções:
+
+**Opção A — Linha de comandos (recomendada)**
+
+```powershell
+cd C:\projetos\git\cp2b
+docker compose run --rm setup
+docker compose restart backend
+```
+
+**Opção B — Docker Desktop**
+
+1. Parar o contentor **backend** (Stop)
+2. Clicar **Play** no contentor **setup** (volta a correr e deteta PDFs novos)
+3. Verificar nos **Logs** do setup: `Building vectorstore...` e `Rulebook chunks: ...`
+4. Arrancar o **backend** de novo (Play)
+
+> **Nota:** `setup` e `ollama-init` ficam **Exited** quando terminam. Isso é normal. Os que têm de estar **Running** para usar a app são: `postgres`, `ollama`, `backend` e `frontend`.
+
+### 3. Testar
+
+Perguntar algo sobre o jogo, por exemplo: *"Qual é o objetivo do Catan?"*
+
+Deves ver **Rota: RAG** e **Fontes:** com `catan-rules.pdf`.
+
+---
+
+## Contentores em execução
+
+| Contentor | Estado normal | Função |
+|-----------|---------------|--------|
+| `postgres` | Running | Base de dados |
+| `ollama` | Running | Modelo de IA |
+| `ollama-init` | Exited (0) | Descarrega modelo (1x) |
+| `setup` | Exited (0) | Indexa dados (corre quando necessário) |
+| `backend` | Running | API |
+| `frontend` | Running | Interface web |
 
 ---
 
@@ -113,6 +151,7 @@ cp2b/
 |---------|--------|-------|
 | `postgres` | Base de dados dos jogos | interna |
 | `ollama` | Modelo de IA local | interna |
+| `ollama-init` | Descarrega o modelo Ollama | — |
 | `setup` | Carrega dados e cria índice | — |
 | `backend` | API da aplicação | 8080 |
 | `frontend` | Interface web | 8501 |
@@ -123,15 +162,28 @@ FastAPI · Streamlit · LangChain · Ollama · PostgreSQL · ChromaDB · Sentenc
 
 ## Resolução de problemas
 
+### Ver logs de um contentor que falhou
+
+No PowerShell, na pasta do projeto:
+
+```powershell
+docker logs boardgame-gpt-setup-1
+docker logs boardgame-gpt-ollama-init-1
+```
+
+No **Docker Desktop**: clicar no contentor → separador **Logs**.
+
 | Problema | Solução |
 |----------|---------|
+| `setup` falhou (exit 1) | Ver logs: `docker logs boardgame-gpt-setup-1` |
+| `ollama-init` falhou | Ver logs: `docker logs boardgame-gpt-ollama-init-1` — pode ser falta de RAM |
 | Projeto não aparece no Docker Desktop | Executar `docker compose up -d --build` na pasta do projeto |
 | Docker não arranca | Abrir Docker Desktop e aguardar "Running" |
-| `setup` falhou | Ver logs do contentor **setup** no Docker Desktop |
 | Frontend sem resposta | Verificar se **backend** está Running |
-| "model not found" | Ver logs do **setup** |
+| "model not found" | Ver logs do **ollama-init** |
 | Primeira execução lenta | Normal |
-| Regras do PDF não aparecem | Apagar volume `chroma_data` e executar `docker compose up -d` |
+| Regras do PDF não aparecem | Correr `docker compose run --rm setup` e `docker compose restart backend` |
+| Fontes não aparecem | Só aparecem em perguntas **RAG** (regras, objetivos). Perguntas SQL não têm fontes |
 
 ## Licença
 

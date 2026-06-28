@@ -92,4 +92,13 @@ def rag_chain(question: str, k: int = 10):
     answer = (PROMPT | LLM | StrOutputParser()).invoke(
         {"context": context, "question": question}
     )
-    return answer, [d.metadata for d in docs]
+    sources = []
+    seen = set()
+    for doc in docs:
+        meta = dict(doc.metadata)
+        key = (meta.get("source"), meta.get("doc_type"), meta.get("game"))
+        if key in seen:
+            continue
+        seen.add(key)
+        sources.append(meta)
+    return answer, sources
