@@ -2,7 +2,9 @@
 
 Chatbot sobre jogos de tabuleiro com RAG e SQL Agent. Responde perguntas sobre regras, reviews, ratings e estatísticas com dados do BoardGameGeek (BGG).
 
-O projeto corre **inteiramente em Docker**. Não é necessário Python instalado nem linha de comandos.
+O projeto corre em **Docker**. Não é necessário instalar Python no PC.
+
+> **Nota:** O Docker Desktop **não executa** o `docker-compose.yml` apenas pela interface gráfica. É preciso arrancar o projeto **uma vez pela linha de comandos**. Depois disso, podes **iniciar e parar** os contentores pelo Docker Desktop.
 
 ---
 
@@ -15,70 +17,78 @@ O projeto corre **inteiramente em Docker**. Não é necessário Python instalado
 
 ---
 
-## Como arrancar (só Docker Desktop)
+## Como arrancar
 
-### 1. Instalar Docker Desktop
+### 1. Instalar e abrir o Docker Desktop
 
-Instalar e abrir o **Docker Desktop**. Aguardar até o estado ficar **Running** (ícone verde).
+Instalar o Docker Desktop e abrir a aplicação. Aguardar até o estado ficar **Running** (ícone verde).
 
-### 2. Importar o projeto no Docker Desktop
+### 2. Primeira execução (linha de comandos)
 
-**Opção A (recomendada)**
+Abrir **PowerShell** ou **Terminal** na pasta do projeto e executar:
 
-1. Abrir o **Docker Desktop**
-2. No menu lateral, clicar em **Compose** (ou **Containers**)
-3. Clicar em **Open** / **Import** / **Create**
-4. Selecionar a **pasta do projeto** (a pasta que contém o ficheiro `docker-compose.yml`)
-5. O Docker Desktop deteta o projeto **boardgame-gpt**
+```powershell
+cd C:\caminho\para\cp2b
+docker compose up -d --build
+```
 
-**Opção B**
+Este comando (só na primeira vez, ou quando alteras o código):
 
-1. No Explorador de Ficheiros, ir à pasta do projeto
-2. Clicar com o botão direito no ficheiro `docker-compose.yml`
-3. Escolher **Open with Docker Desktop** (se disponível)
+* Constrói a imagem da aplicação
+* Arranca PostgreSQL e Ollama
+* Executa o contentor **setup** (carrega dados, indexa textos, descarrega modelo)
+* Arranca **backend** e **frontend**
 
-### 3. Arrancar o projeto
+A primeira execução pode demorar **15 a 30 minutos**.
 
-1. No Docker Desktop, com o projeto **boardgame-gpt** visível
-2. Clicar no botão **Run** / **Play** (▶)
-3. O Docker Desktop vai:
-   * Construir a imagem da aplicação (primeira vez)
-   * Arrancar PostgreSQL e Ollama
-   * Executar o contentor **setup** (carrega dados e indexa textos)
-   * Arrancar **backend** e **frontend**
-
-### 4. Aguardar os contentores
-
-Na lista de contentores, verificar o estado:
+Verificar no Docker Desktop se os contentores estão a correr:
 
 | Contentor | Estado esperado |
 |-----------|-----------------|
-| `postgres` | Running (verde) |
-| `ollama` | Running (verde) |
-| `setup` | Exited (0) — corre uma vez e termina |
-| `backend` | Running (verde) |
-| `frontend` | Running (verde) |
+| `postgres` | Running |
+| `ollama` | Running |
+| `setup` | Exited (0) |
+| `backend` | Running |
+| `frontend` | Running |
 
-A **primeira execução** pode demorar 15 a 30 minutos (construção da imagem, download do modelo Ollama e indexação).
-
-### 5. Abrir a aplicação
+### 3. Abrir a aplicação
 
 No browser: **http://localhost:8501**
+
+### 4. Arranques seguintes (Docker Desktop)
+
+Depois da primeira execução, o projeto fica registado no Docker Desktop. Podes gerir sem linha de comandos:
+
+1. Abrir o **Docker Desktop**
+2. Ir a **Containers** (ou ao projeto **boardgame-gpt**)
+3. Clicar em **Start** (▶) para arrancar todos os contentores
+4. Clicar em **Stop** (■) para parar
+
+> Se os contentores não aparecerem, repetir o passo 2 (`docker compose up -d`).
 
 ---
 
 ## Parar o projeto
 
-No Docker Desktop, selecionar o projeto **boardgame-gpt** e clicar em **Stop** (■).
+**Pelo Docker Desktop:** selecionar o projeto e clicar **Stop**.
+
+**Pela linha de comandos:**
+
+```powershell
+docker compose down
+```
 
 ---
 
 ## Adicionar rulebooks (ex.: Catan)
 
 1. Colocar o PDF em `data/rulebooks/` (ex.: `catan-rules.pdf`)
-2. No Docker Desktop, ir a **Volumes**
-3. Apagar o volume **boardgame-gpt_chroma_data**
-4. Parar e voltar a arrancar o projeto (▶)
+2. No Docker Desktop, ir a **Volumes** e apagar **boardgame-gpt_chroma_data**
+3. Na pasta do projeto, executar:
+
+```powershell
+docker compose up -d
+```
 
 O contentor **setup** volta a indexar os ficheiros.
 
@@ -92,8 +102,8 @@ cp2b/
 ├── frontend/          # Interface Streamlit
 ├── ingest/            # Scripts de ingestão
 ├── data/              # Jogos, rulebooks, reviews
-├── Dockerfile         # Imagem da aplicação
-├── docker-compose.yml # Configuração dos contentores
+├── Dockerfile
+├── docker-compose.yml
 └── requirements.txt
 ```
 
@@ -103,7 +113,7 @@ cp2b/
 |---------|--------|-------|
 | `postgres` | Base de dados dos jogos | interna |
 | `ollama` | Modelo de IA local | interna |
-| `setup` | Carrega dados e cria índice (1x por arranque) | — |
+| `setup` | Carrega dados e cria índice | — |
 | `backend` | API da aplicação | 8080 |
 | `frontend` | Interface web | 8501 |
 
@@ -115,12 +125,13 @@ FastAPI · Streamlit · LangChain · Ollama · PostgreSQL · ChromaDB · Sentenc
 
 | Problema | Solução |
 |----------|---------|
+| Projeto não aparece no Docker Desktop | Executar `docker compose up -d --build` na pasta do projeto |
 | Docker não arranca | Abrir Docker Desktop e aguardar "Running" |
 | `setup` falhou | Ver logs do contentor **setup** no Docker Desktop |
 | Frontend sem resposta | Verificar se **backend** está Running |
-| "model not found" | Ver logs do **setup** — o modelo é descarregado no primeiro arranque |
-| Primeira execução lenta | Normal — construção da imagem e download do modelo |
-| Regras do PDF não aparecem | Apagar volume `chroma_data` e reiniciar o projeto |
+| "model not found" | Ver logs do **setup** |
+| Primeira execução lenta | Normal |
+| Regras do PDF não aparecem | Apagar volume `chroma_data` e executar `docker compose up -d` |
 
 ## Licença
 
